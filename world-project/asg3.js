@@ -87,6 +87,10 @@ var TEX_GRASS = 0;
 var TEX_CARDS = 1;
 var TEX_BRICK = 2;
 
+function isPowerOfTwo(x) {
+  return (x & (x - 1)) === 0;
+}
+
 // Hardcoded 2D wall-height map: 0..4.
 // Outer ring is tall (brick); interior has varying heights (cards).
 var WORLD_MAP = [
@@ -150,11 +154,21 @@ function loadImageTexture(glContext, url, onReady) {
     glContext.pixelStorei(glContext.UNPACK_FLIP_Y_WEBGL, 1);
     glContext.texImage2D(glContext.TEXTURE_2D, 0, glContext.RGB, glContext.RGB,
       glContext.UNSIGNED_BYTE, img);
-    glContext.texParameteri(glContext.TEXTURE_2D, glContext.TEXTURE_MIN_FILTER, glContext.LINEAR_MIPMAP_LINEAR);
+    // Some student textures are NPOT (not power-of-two). In WebGL1, NPOT textures
+    // cannot use mipmaps or REPEAT wrapping; otherwise the texture becomes incomplete
+    // and sampling returns black.
+    var pot = isPowerOfTwo(img.width) && isPowerOfTwo(img.height);
     glContext.texParameteri(glContext.TEXTURE_2D, glContext.TEXTURE_MAG_FILTER, glContext.LINEAR);
-    glContext.texParameteri(glContext.TEXTURE_2D, glContext.TEXTURE_WRAP_S, glContext.REPEAT);
-    glContext.texParameteri(glContext.TEXTURE_2D, glContext.TEXTURE_WRAP_T, glContext.REPEAT);
-    glContext.generateMipmap(glContext.TEXTURE_2D);
+    if (pot) {
+      glContext.texParameteri(glContext.TEXTURE_2D, glContext.TEXTURE_MIN_FILTER, glContext.LINEAR_MIPMAP_LINEAR);
+      glContext.texParameteri(glContext.TEXTURE_2D, glContext.TEXTURE_WRAP_S, glContext.REPEAT);
+      glContext.texParameteri(glContext.TEXTURE_2D, glContext.TEXTURE_WRAP_T, glContext.REPEAT);
+      glContext.generateMipmap(glContext.TEXTURE_2D);
+    } else {
+      glContext.texParameteri(glContext.TEXTURE_2D, glContext.TEXTURE_MIN_FILTER, glContext.LINEAR);
+      glContext.texParameteri(glContext.TEXTURE_2D, glContext.TEXTURE_WRAP_S, glContext.CLAMP_TO_EDGE);
+      glContext.texParameteri(glContext.TEXTURE_2D, glContext.TEXTURE_WRAP_T, glContext.CLAMP_TO_EDGE);
+    }
     onReady(tex);
   };
   img.onerror = function () {
