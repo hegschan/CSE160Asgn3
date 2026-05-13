@@ -25,14 +25,18 @@ varying vec2 v_UV;
 uniform float u_RenderMode;
 uniform sampler2D u_Sampler0;
 uniform sampler2D u_Sampler1;
+uniform sampler2D u_Sampler2;
 void main() {
   if (u_RenderMode < 0.5) {
     gl_FragColor = vec4(v_Color, 1.0);
   } else if (u_RenderMode < 1.5) {
     vec4 t = texture2D(u_Sampler0, v_UV);
     gl_FragColor = t * vec4(v_Color, 1.0);
-  } else {
+  } else if (u_RenderMode < 2.5) {
     vec4 t = texture2D(u_Sampler1, v_UV);
+    gl_FragColor = t * vec4(v_Color, 1.0);
+  } else {
+    vec4 t = texture2D(u_Sampler2, v_UV);
     gl_FragColor = t * vec4(v_Color, 1.0);
   }
 }
@@ -45,12 +49,14 @@ var canvas;
 var u_RenderModeLoc;
 var u_Sampler0Loc;
 var u_Sampler1Loc;
+var u_Sampler2Loc;
 var u_ModelMatrixLoc;
 var u_viewMatrixLoc;
 var u_projectionMatrixLoc;
 
 var texture0;
 var texture1;
+var texture2;
 
 var vertexBuffer;
 var FLOAT_SIZE = Float32Array.BYTES_PER_ELEMENT;
@@ -75,6 +81,37 @@ var groundMarker;
 var RENDER_COLOR = 0.0;
 var RENDER_TEX0 = 1.0;
 var RENDER_TEX1 = 2.0;
+var RENDER_TEX2 = 3.0;
+
+var TEX_GRASS = 0;
+var TEX_CARDS = 1;
+var TEX_BRICK = 2;
+
+// Hardcoded 2D wall-height map: 0..4.
+// Outer ring is tall (brick); interior has varying heights (cards).
+var WORLD_MAP = [
+  [4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4],
+  [4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4],
+  [4,0,2,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,2,0,4],
+  [4,0,2,0,0,0,0,2,0,0,0,0,0,2,0,0,0,0,2,0,4],
+  [4,0,2,0,0,0,0,3,0,0,0,0,0,3,0,0,0,0,2,0,4],
+  [4,0,0,0,0,0,0,3,0,0,0,0,0,3,0,0,0,0,0,0,4],
+  [4,0,0,0,0,0,0,2,0,0,0,0,0,2,0,0,0,0,0,0,4],
+  [4,0,1,2,2,2,0,1,0,0,0,0,0,1,0,2,2,2,1,0,4],
+  [4,0,0,0,0,2,0,0,0,0,0,0,0,0,0,2,0,0,0,0,4],
+  [4,0,0,0,0,3,0,0,0,2,2,2,0,0,0,3,0,0,0,0,4],
+  [4,0,0,0,0,3,0,0,0,2,0,2,0,0,0,3,0,0,0,0,4],
+  [4,0,0,0,0,3,0,0,0,2,0,2,0,0,0,3,0,0,0,0,4],
+  [4,0,0,0,0,3,0,0,0,2,2,2,0,0,0,3,0,0,0,0,4],
+  [4,0,0,0,0,2,0,0,0,0,0,0,0,0,0,2,0,0,0,0,4],
+  [4,0,1,2,2,2,0,1,0,0,0,0,0,1,0,2,2,2,1,0,4],
+  [4,0,0,0,0,0,0,2,0,0,0,0,0,2,0,0,0,0,0,0,4],
+  [4,0,0,0,0,0,0,3,0,0,0,0,0,3,0,0,0,0,0,0,4],
+  [4,0,2,0,0,0,0,3,0,0,0,0,0,3,0,0,0,0,2,0,4],
+  [4,0,2,0,0,0,0,2,0,0,0,0,0,2,0,0,0,0,2,0,4],
+  [4,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,4],
+  [4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4],
+];
 
 function packKey(ix, iy, iz) {
   return ix + ',' + iy + ',' + iz;
@@ -134,6 +171,10 @@ function bindTextures() {
   gl.activeTexture(gl.TEXTURE1);
   gl.bindTexture(gl.TEXTURE_2D, texture1);
   gl.uniform1i(u_Sampler1Loc, 1);
+
+  gl.activeTexture(gl.TEXTURE2);
+  gl.bindTexture(gl.TEXTURE_2D, texture2);
+  gl.uniform1i(u_Sampler2Loc, 2);
 }
 
 function drawGeometry(geom, renderMode) {
@@ -194,7 +235,8 @@ function rayGridInteract(removeMode) {
               Math.abs(camera.eye.elements[1] - prevCell.iy) < 1.25) {
             return false;
           }
-          blocks.set(pk, { tex: Math.random() > 0.5 ? 1 : 0 });
+          // Default placed block uses the cards texture (minecraft-style building block).
+          blocks.set(pk, { tex: TEX_CARDS });
           return true;
         }
       }
@@ -206,6 +248,95 @@ function rayGridInteract(removeMode) {
   }
 
   return false;
+}
+
+function rayDeleteFirstHit() {
+  var origin = camera.eye.elements;
+  var dir = camera.forwardDir();
+  var ox = origin[0];
+  var oy = origin[1];
+  var oz = origin[2];
+  var dx = dir[0];
+  var dy = dir[1];
+  var dz = dir[2];
+
+  var step = 0.045;
+  var maxDist = 9;
+  for (var t = step; t < maxDist; t += step) {
+    var x = ox + dx * t;
+    var y = oy + dy * t;
+    var z = oz + dz * t;
+    var ix = Math.round(x);
+    var iy = Math.round(y);
+    var iz = Math.round(z);
+    var key = packKey(ix, iy, iz);
+    if (blocks.has(key)) {
+      blocks.delete(key);
+      return true;
+    }
+  }
+  return false;
+}
+
+function isOuterMapCell(mx, mz, mapW, mapH) {
+  return mx === 0 || mz === 0 || mx === mapW - 1 || mz === mapH - 1;
+}
+
+function buildWorldFromMap() {
+  blocks.clear();
+  var mapH = WORLD_MAP.length;
+  var mapW = WORLD_MAP[0].length;
+  var midX = Math.floor(mapW / 2);
+  var midZ = Math.floor(mapH / 2);
+
+  for (var mz = 0; mz < mapH; mz++) {
+    for (var mx = 0; mx < mapW; mx++) {
+      var height = WORLD_MAP[mz][mx] | 0;
+      if (height <= 0) continue;
+      var tex = isOuterMapCell(mx, mz, mapW, mapH) ? TEX_BRICK : TEX_CARDS;
+      var wx = mx - midX;
+      var wz = mz - midZ;
+      for (var y = 0; y < height; y++) {
+        blocks.set(packKey(wx, y, wz), { tex: tex });
+      }
+    }
+  }
+
+  // Add a small terrain variation using grass blocks (simple terrain map).
+  // This keeps the overall layout clean while satisfying the terrain-map option.
+  for (var tz = 0; tz < mapH; tz++) {
+    for (var tx = 0; tx < mapW; tx++) {
+      var wx2 = tx - midX;
+      var wz2 = tz - midZ;
+      // No grass terrain under walls; also keep the central area flatter.
+      if (WORLD_MAP[tz][tx] > 0) continue;
+      var d2 = wx2 * wx2 + wz2 * wz2;
+      if (d2 < 16) continue;
+      var h2 = ((tx * 17 + tz * 31) % 9 === 0) ? 1 : 0;
+      if (h2 > 0) {
+        blocks.set(packKey(wx2, h2 - 1, wz2), { tex: TEX_GRASS });
+      }
+    }
+  }
+
+  // Animal made of cubes (simple block creature) inside the world.
+  // Body
+  var ax = -2, az = 3, ay = 0;
+  var animal = [
+    // body 2x1x3
+    [0,0,0],[1,0,0],[0,0,1],[1,0,1],[0,0,2],[1,0,2],
+    [0,1,0],[1,1,0],[0,1,1],[1,1,1],[0,1,2],[1,1,2],
+    // head
+    [0,2,2],[1,2,2],[0,2,3],[1,2,3],
+    // ears
+    [0,3,3],[1,3,3],
+    // feet
+    [0,-1,0],[1,-1,0],[0,-1,2],[1,-1,2],
+  ];
+  for (var i = 0; i < animal.length; i++) {
+    var b = animal[i];
+    blocks.set(packKey(ax + b[0], ay + b[1], az + b[2]), { tex: TEX_CARDS });
+  }
 }
 
 function collidesPlayer(px, py, pz) {
@@ -253,7 +384,7 @@ function updateHUD() {
     '',
     'Move: WASD or arrow keys   Sprint: hold Shift',
     'Turn: Q / E (rotate)   Look: mouse after click (pointer lock)',
-    'Blocks: F place ahead   G remove aim target',
+    'Blocks: F place (cards)   R remove (any block)',
     '',
     'Prism keys collected: ' + keysFound + ' / ' + totalKeys +
       (gameWon ? '   Gate open. Stand on the gold dais to seal the ruins.' : ''),
@@ -283,42 +414,8 @@ function checkCollectibles() {
 }
 
 function seedWorld() {
-  blocks.clear();
   collectibles.length = 0;
-
-  var r = 14;
-  for (var x = -r; x <= r; x++) {
-    for (var z = -r; z <= r; z++) {
-      var edge = Math.abs(x) === r || Math.abs(z) === r;
-      if (edge) {
-        for (var y = 0; y <= 5; y++) {
-          blocks.set(packKey(x, y, z), { tex: z % 2 });
-        }
-      }
-    }
-  }
-
-  var pillars = [[-8, -8], [8, -8], [-8, 8], [8, 8], [-10, 2], [10, -3]];
-  for (var p = 0; p < pillars.length; p++) {
-    var bx = pillars[p][0];
-    var bz = pillars[p][1];
-    for (var h = 0; h <= 9; h++) {
-      blocks.set(packKey(bx, h, bz), { tex: h % 2 });
-    }
-  }
-
-  for (var i = -6; i <= 6; i++) {
-    blocks.set(packKey(i, 1, 0), { tex: i % 2 });
-    if (Math.abs(i) % 2 === 0) {
-      blocks.set(packKey(i, 2, 0), { tex: 1 });
-    }
-  }
-
-  blocks.set(packKey(-5, 0, -10), { tex: 0 });
-  blocks.set(packKey(-5, 1, -10), { tex: 1 });
-  blocks.set(packKey(6, 0, 8), { tex: 1 });
-  blocks.set(packKey(6, 1, 8), { tex: 0 });
-  blocks.set(packKey(-11, 3, 5), { tex: 1 });
+  buildWorldFromMap();
 
   collectibles.push({ x: -9, y: 2.2, z: -9, phase: 0 });
   collectibles.push({ x: 11, y: 4.2, z: -5, phase: 1.3 });
@@ -413,7 +510,7 @@ function animate(now) {
   gl.depthMask(false);
   gl.disable(gl.CULL_FACE);
   setTransforms(skyMesh, ex, ey, ez, 110, 110, 110, 0);
-  drawGeometry(skyMesh, RENDER_TEX1);
+  drawGeometry(skyMesh, RENDER_COLOR);
   gl.depthMask(true);
   gl.enable(gl.CULL_FACE);
 
@@ -425,7 +522,10 @@ function animate(now) {
     var ix = parts[0];
     var iy = parts[1];
     var iz = parts[2];
-    var slot = meta && meta.tex === 1 ? RENDER_TEX1 : RENDER_TEX0;
+    var slot = RENDER_TEX1;
+    if (meta && meta.tex === TEX_GRASS) slot = RENDER_TEX0;
+    if (meta && meta.tex === TEX_CARDS) slot = RENDER_TEX1;
+    if (meta && meta.tex === TEX_BRICK) slot = RENDER_TEX2;
     setTransforms(cubeTemplate, ix, iy, iz, 0.5, 0.5, 0.5, 0);
     drawGeometry(cubeTemplate, slot);
   });
@@ -513,6 +613,8 @@ function setupGeometryTemplates() {
   cubeTemplate = new cube();
   groundMesh = new cube();
   skyMesh = new cube();
+  // Sky should be a large blue cube.
+  skyMesh.vertices = coloredFlatCubeVerts(0.35, 0.55, 0.95);
 
   collectGeom = new triangle();
   collectGeom.vertices = makeTriangleVerts(0.35, 0.95, 1.0);
@@ -523,55 +625,42 @@ function setupGeometryTemplates() {
 }
 
 function startTexturesThenLoop() {
-  texture0 = makeCanvasTexture(gl, function (ctx, w, h) {
-    var g = ctx.createLinearGradient(0, 0, w, h);
-    g.addColorStop(0, '#3d6b3d');
-    g.addColorStop(0.45, '#5a8f5a');
-    g.addColorStop(1, '#2d4a2d');
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, w, h);
-    ctx.strokeStyle = 'rgba(40,60,40,0.35)';
-    ctx.lineWidth = 2;
-    var step = 32;
-    for (var x = 0; x < w; x += step) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, h);
-      ctx.stroke();
-    }
-    for (var y = 0; y < h; y += step) {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(w, y);
-      ctx.stroke();
-    }
-  });
-
-  texture1 = makeCanvasTexture(gl, function (ctx, w, h) {
-    ctx.fillStyle = '#87a8d8';
-    ctx.fillRect(0, 0, w, h);
-    var g = ctx.createRadialGradient(w * 0.35, h * 0.25, 10, w * 0.5, h * 0.5, w * 0.65);
-    g.addColorStop(0, 'rgba(255,255,255,0.55)');
-    g.addColorStop(0.35, 'rgba(160,190,230,0.15)');
-    g.addColorStop(1, 'rgba(70,100,150,0.35)');
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, w, h);
-    ctx.fillStyle = 'rgba(255,255,255,0.08)';
-    for (var i = 0; i < 80; i++) {
-      var sx = Math.random() * w;
-      var sy = Math.random() * h;
-      var sr = 1 + Math.random() * 2;
-      ctx.beginPath();
-      ctx.arc(sx, sy, sr, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  });
-
   var texBase = (typeof window.ASSET_ROOT === 'string') ? window.ASSET_ROOT : 'world-project/';
+  // Fallback textures in case an image fails to load.
+  texture0 = makeCanvasTexture(gl, function (ctx, w, h) {
+    ctx.fillStyle = '#3f7a3f';
+    ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = 'rgba(30,50,30,0.35)';
+    ctx.lineWidth = 2;
+    for (var x = 0; x < w; x += 32) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke(); }
+    for (var y = 0; y < h; y += 32) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
+  });
+  texture1 = makeCanvasTexture(gl, function (ctx, w, h) {
+    ctx.fillStyle = '#d0c8b8';
+    ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = 'rgba(0,0,0,0.08)';
+    for (var i = 0; i < 40; i++) { ctx.fillRect(Math.random()*w, Math.random()*h, 40, 8); }
+  });
+  texture2 = makeCanvasTexture(gl, function (ctx, w, h) {
+    ctx.fillStyle = '#a14a3c';
+    ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+    ctx.lineWidth = 3;
+    for (var y = 28; y < h; y += 56) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
+  });
+
+  // User-requested textures:
+  // - Ground: alice_grass.jpeg
+  // - Interior walls + placeable blocks: alice_cards.jpeg
+  // - Outer walls: block.jpg
+  loadImageTexture(gl, texBase + 'textures/alice_grass.jpeg', function (loaded) {
+    if (loaded) texture0 = loaded;
+  });
+  loadImageTexture(gl, texBase + 'textures/alice_cards.jpeg', function (loaded) {
+    if (loaded) texture1 = loaded;
+  });
   loadImageTexture(gl, texBase + 'textures/block.jpg', function (loaded) {
-    if (loaded) {
-      texture0 = loaded;
-    }
+    if (loaded) texture2 = loaded;
   });
 
   bindTextures();
@@ -606,6 +695,7 @@ function main() {
   u_RenderModeLoc = gl.getUniformLocation(gl.program, 'u_RenderMode');
   u_Sampler0Loc = gl.getUniformLocation(gl.program, 'u_Sampler0');
   u_Sampler1Loc = gl.getUniformLocation(gl.program, 'u_Sampler1');
+  u_Sampler2Loc = gl.getUniformLocation(gl.program, 'u_Sampler2');
   u_ModelMatrixLoc = gl.getUniformLocation(gl.program, 'u_ModelMatrix');
   u_viewMatrixLoc = gl.getUniformLocation(gl.program, 'u_viewMatrix');
   u_projectionMatrixLoc = gl.getUniformLocation(gl.program, 'u_projectionMatrix');
@@ -631,8 +721,8 @@ function main() {
       rayGridInteract(false);
       e.preventDefault();
     }
-    if (e.code === 'KeyG') {
-      rayGridInteract(true);
+    if (e.code === 'KeyR') {
+      rayDeleteFirstHit();
       e.preventDefault();
     }
   });
