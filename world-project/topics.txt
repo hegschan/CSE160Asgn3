@@ -1,0 +1,15 @@
+- Texture loading - DONE
+
+  1. Update shader to sample color from texture using UV coordinates. - DONE
+
+  2. Write javascript function loadTexture(src) to send texture to the shader. - DONE
+
+  3. Setup vertex buffer to read UV coordinates from shapes. - DONE
+
+  4. Mix base color with texture color. - DONE
+
+- Camera
+
+  1. Add View and Projection matrix to the vertex shader. - DONE
+
+  2. Create a camera class
