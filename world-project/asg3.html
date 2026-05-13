@@ -1,32 +1,31 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <title>ASG 3</title>
-
-    <script src="asg3.js"></script>
-
-    <!-- Load camera -->
-    <script src="camera.js"></script>
-
-    <!-- Load geometry -->
-    <script src="geometry/geometry.js"></script>
-    <script src="geometry/triangle.js"></script>
-    <script src="geometry/cube.js"></script>
-    <script src="geometry/square.js"></script>
-
-    <!-- Load external libraries -->
-    <script src="lib/cuon-matrix-cse160.js"></script>
-    <script src="lib/cuon-utils.js"></script>
-    <script src="lib/webgl-debug.js"></script>
-    <script src="lib/webgl-utils.js"></script>
-  </head>
-
-  <body onload="main()">
-    <canvas id="webgl" width="400" height="400">
-      Please use a browser that supports "canvas"
-    </canvas>
-	<br>
-	Use arrow keys to move camera
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ASG 3 (local)</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: #0a0a0f; font-family: system-ui, sans-serif; }
+    canvas { display: block; width: 100vw; height: 100vh; cursor: crosshair; }
+    #hud { position: fixed; left: 12px; bottom: 12px; color: #e8e8f0; font-size: 13px; line-height: 1.5;
+      text-shadow: 0 1px 3px #000; max-width: min(440px, 92vw); pointer-events: none; }
+    #title { position: fixed; left: 12px; top: 10px; color: #dde; font-size: 15px; text-shadow: 0 1px 4px #000; pointer-events: none; }
+  </style>
+</head>
+<body>
+  <div id="title">Ruins of the Prism Gate</div>
+  <canvas id="webgl" width="800" height="600"></canvas>
+  <div id="hud"></div>
+  <script>window.ASSET_ROOT = '';</script>
+  <script src="lib/webgl-utils.js"></script>
+  <script src="lib/webgl-debug.js"></script>
+  <script src="lib/cuon-utils.js"></script>
+  <script src="lib/cuon-matrix-cse160.js"></script>
+  <script src="camera.js"></script>
+  <script src="geometry/geometry.js"></script>
+  <script src="geometry/cube.js"></script>
+  <script src="geometry/square.js"></script>
+  <script src="geometry/triangle.js"></script>
+  <script src="asg3.js"></script>
+</body>
 </html>

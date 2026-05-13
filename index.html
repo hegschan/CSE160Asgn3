@@ -1,24 +1,65 @@
-<!DOCTYPE html><html lang="en"><head>  <meta charset="UTF-8">  <title>CSE160 Assignment 3</title>  <style>    body {      margin: 0;      overflow: hidden;      background: black;    }    canvas {      display: block;      width: 100vw;      height: 100vh;    }  </style></head><body>  <canvas id="webgl" width="800" height="600"></canvas>  <!-- LIBRARIES -->  <script src="lib/webgl-utils.js"></script>  <script src="lib/webgl-debug.js"></script>  <script src="lib/cuon-utils.js"></script>  <script src="lib/cuon-matrix-cse160.js"></script>  <!-- CAMERA -->  <script src="camera.js"></script>  <!-- GEOMETRY -->  <script src="geometry/geometry.js"></script>  <script src="geometry/cube.js"></script>  <script src="geometry/square.js"></script>  <script src="geometry/triangle.js"></script>  <!-- MAIN PROGRAM -->  <script src="asg3.js"></script></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CSE160 Assignment 3</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: #0a0a0f;
+      font-family: system-ui, sans-serif;
+    }
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      cursor: crosshair;
+    }
+    #hud {
+      position: fixed;
+      left: 12px;
+      bottom: 12px;
+      color: #e8e8f0;
+      font-size: 13px;
+      line-height: 1.5;
+      text-shadow: 0 1px 3px #000;
+      max-width: min(440px, 92vw);
+      pointer-events: none;
+    }
+    #title {
+      position: fixed;
+      left: 12px;
+      top: 10px;
+      color: #dde;
+      font-size: 15px;
+      text-shadow: 0 1px 4px #000;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="title">Ruins of the Prism Gate</div>
+  <canvas id="webgl" width="800" height="600"></canvas>
+  <div id="hud"></div>
 
-IMPORTANT
-This file MUST be:
-index.html
-EXACTLY.
-NOT:
-❌ Index.html
-❌ index.HTML
-❌ main.html
+  <script src="world-project/lib/webgl-utils.js"></script>
+  <script src="world-project/lib/webgl-debug.js"></script>
+  <script src="world-project/lib/cuon-utils.js"></script>
+  <script src="world-project/lib/cuon-matrix-cse160.js"></script>
 
-WHERE IT GOES
-It should be directly inside your repo root:
-CSE160Asgn3/├── index.html├── asg3.js├── camera.js
-NOT inside another folder.
+  <script>
+    window.ASSET_ROOT = 'world-project/';
+  </script>
 
-AFTER YOU CREATE IT
-Run:
-git add .git commit -m "added index.html"git push
-Then wait about:
-30-60 seconds
-and refresh:
-Your GitHub Pages Site
-Your project should appear.
+  <script src="world-project/camera.js"></script>
+
+  <script src="world-project/geometry/geometry.js"></script>
+  <script src="world-project/geometry/cube.js"></script>
+  <script src="world-project/geometry/square.js"></script>
+  <script src="world-project/geometry/triangle.js"></script>
+
+  <script src="world-project/asg3.js"></script>
+</body>
+</html>
