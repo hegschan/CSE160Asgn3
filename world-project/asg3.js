@@ -302,19 +302,15 @@ function buildWorldFromMap() {
     }
   }
 
-  // Add a small terrain variation using grass blocks (simple terrain map).
-  // This keeps the overall layout clean while satisfying the terrain-map option.
-  for (var tz = 0; tz < mapH; tz++) {
-    for (var tx = 0; tx < mapW; tx++) {
-      var wx2 = tx - midX;
-      var wz2 = tz - midZ;
-      // No grass terrain under walls; also keep the central area flatter.
-      if (WORLD_MAP[tz][tx] > 0) continue;
-      var d2 = wx2 * wx2 + wz2 * wz2;
-      if (d2 < 16) continue;
-      var h2 = ((tx * 17 + tz * 31) % 9 === 0) ? 1 : 0;
-      if (h2 > 0) {
-        blocks.set(packKey(wx2, h2 - 1, wz2), { tex: TEX_GRASS });
+  // Create a removable grass ground layer (alice_grass.jpeg) everywhere.
+  for (var gz = 0; gz < mapH; gz++) {
+    for (var gx = 0; gx < mapW; gx++) {
+      var wx2 = gx - midX;
+      var wz2 = gz - midZ;
+      var groundY = -1;
+      var key = packKey(wx2, groundY, wz2);
+      if (!blocks.has(key)) {
+        blocks.set(key, { tex: TEX_GRASS });
       }
     }
   }
