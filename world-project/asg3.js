@@ -316,7 +316,7 @@ function buildWorldFromMap() {
     }
   }
 
-  // Create a removable grass ground layer (alice_grass.jpeg) everywhere.
+  // Create a removable grass ground layer (procedural texture0) everywhere.
   for (var gz = 0; gz < mapH; gz++) {
     for (var gx = 0; gx < mapW; gx++) {
       var wx2 = gx - midX;
@@ -659,16 +659,10 @@ function startTexturesThenLoop() {
     for (var y = 28; y < h; y += 56) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
   });
 
-  // User-requested textures:
-  // - Ground: alice_grass.jpeg
-  // - Interior walls + placeable blocks: alice_cards.jpeg
-  // - Outer walls: block.jpg
-  loadImageTexture(gl, texBase + 'textures/alice_grass.jpeg', function (loaded) {
-    if (loaded) texture0 = loaded;
-  });
-  loadImageTexture(gl, texBase + 'textures/alice_cards.jpeg', function (loaded) {
-    if (loaded) texture1 = loaded;
-  });
+  // Texture sources:
+  // - Ground (texture0): procedural (always visible; no external JPEG dependency)
+  // - Interior walls + placeable blocks (texture1): procedural
+  // - Outer walls (texture2): block.jpg
   loadImageTexture(gl, texBase + 'textures/block.jpg', function (loaded) {
     if (loaded) texture2 = loaded;
   });
