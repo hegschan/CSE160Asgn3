@@ -1,0 +1,24 @@
+<!DOCTYPE html><html lang="en"><head>  <meta charset="UTF-8">  <title>CSE160 Assignment 3</title>  <style>    body {      margin: 0;      overflow: hidden;      background: black;    }    canvas {      display: block;      width: 100vw;      height: 100vh;    }  </style></head><body>  <canvas id="webgl" width="800" height="600"></canvas>  <!-- LIBRARIES -->  <script src="lib/webgl-utils.js"></script>  <script src="lib/webgl-debug.js"></script>  <script src="lib/cuon-utils.js"></script>  <script src="lib/cuon-matrix-cse160.js"></script>  <!-- CAMERA -->  <script src="camera.js"></script>  <!-- GEOMETRY -->  <script src="geometry/geometry.js"></script>  <script src="geometry/cube.js"></script>  <script src="geometry/square.js"></script>  <script src="geometry/triangle.js"></script>  <!-- MAIN PROGRAM -->  <script src="asg3.js"></script></body></html>
+
+IMPORTANT
+This file MUST be:
+index.html
+EXACTLY.
+NOT:
+❌ Index.html
+❌ index.HTML
+❌ main.html
+
+WHERE IT GOES
+It should be directly inside your repo root:
+CSE160Asgn3/├── index.html├── asg3.js├── camera.js
+NOT inside another folder.
+
+AFTER YOU CREATE IT
+Run:
+git add .git commit -m "added index.html"git push
+Then wait about:
+30-60 seconds
+and refresh:
+Your GitHub Pages Site
+Your project should appear.
